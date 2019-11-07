@@ -1,6 +1,6 @@
 # #! /bin/bash 
 
-cat "./other/server-${1}" | \
+cat "./server/${1}" | \
 while read CMD 
 do 
     YEAR_ENV="${CMD:0:4}"
@@ -12,7 +12,7 @@ do
     sed -i "s/%MONTH_ENV%/${MONTH_ENV}/g" env
 
     echo "[START] docker-compose"
-    docker-compose -d up 
+    docker-compose up -d 
 
     echo "[CHECK]: check container's status"
     while :
@@ -24,10 +24,10 @@ do
     done 
 
     echo "[CLEAN UP]: delete topic" 
-    A=$(sudo ~/kafka_2.12-2.2.0/bin/kafka-topics.sh --zookeeper localhost:2181 --list)
+    A=$(~/kafka_2.12-2.3.0/bin/kafka-topics.sh --zookeeper localhost:2181 --list)
     for i in $A; do
         if [[ $i == "${TOPIC_HEADER}_"* ]]; then
-            sudo ~/kafka_2.12-2.2.0/bin/kafka-topics.sh --zookeeper localhost:2181 --delete --topic $i
+            ~/kafka_2.12-2.3.0/bin/kafka-topics.sh --zookeeper localhost:2181 --delete --topic $i
         fi
     done 
 
