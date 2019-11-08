@@ -1,4 +1,4 @@
-FROM python
+FROM python:3.6
 
 RUN mkdir /src && cd /src && \ 
     curl -O https://research.wand.net.nz/software/wandio/wandio-4.0.0.tar.gz && \
