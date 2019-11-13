@@ -1,49 +1,52 @@
-FROM python:3.6
+FROM python:3.6-alpine3.9
 
-RUN mkdir /src && cd /src && \ 
-    curl -O https://research.wand.net.nz/software/wandio/wandio-4.0.0.tar.gz && \
-    tar zxf wandio-4.0.0.tar.gz && \
-    cd wandio-4.0.0/ && \
-    ./configure && \
-    make && \
-    make install && \
-    ldconfig
+RUN apk add --no-cache --virtual .build alpine-sdk curl-dev libcurl zlib-dev bzip2-dev libbz2 automake autoconf libtool libpthread-stubs && \
+    apk add --no-cache libcurl libbz2
 
-RUN cd /src && \ 
-    curl -O https://bgpstream.caida.org/bundles/caidabgpstreamwebhomepage/dists/bgpstream-1.2.3.tar.gz && \
-    tar zxf bgpstream-1.2.3.tar.gz && \
-    cd bgpstream-1.2.3 && \
-    ./configure && \
-    make && \
-    make check && \ 
-    make install && \ 
-    ldconfig
+RUN cd /tmp && \
+    git clone https://github.com/wanduow/wandio.git && \
+    git clone https://github.com/CAIDA/bgpstream.git
 
-RUN apt-get -y update && \ 
-    apt-get -y install software-properties-common
+COPY bgpstream.patch /tmp/bgpstream
 
-RUN cd /src && \
+RUN cd /tmp/wandio/ \
+    && ./bootstrap.sh \
+    && ./configure --with-http --with-zlib --with-bzip2 \
+    && make \
+    && make install ; \
+    cd /tmp/bgpstream \
+    && patch < bgpstream.patch \
+    && ./autogen.sh \
+    && ./configure \
+    && make \
+    && make install ; \
+    cd /tmp/bgpstream/pybgpstream && \
+    python3 setup.py build && \
+    python setup.py install ; \
+    rm -rf /tmp/wandio /tmp/bgpstream
+
+RUN cd /tmp && \
     curl -O https://codeload.github.com/edenhill/librdkafka/tar.gz/v1.2.1 && \
     tar -xzvf v1.2.1 && \
     cd librdkafka-1.2.1/ && \
     ./configure && \ 
     make && \
     make install && \
-    ldconfig
-
-RUN cd /src && \
-    git clone https://github.com/CAIDA/bgpstream.git && \
-    cd bgpstream/pybgpstream && \
-    python3 setup.py build && \
-    python setup.py install
+    rm -rf /tmp/librdkafka-1.2.1 /tmp/v1.2.1
 
 RUN pip3 install \
     confluent-kafka \
     arrow \
     msgpack 
 
-RUN mkdir /app 
+RUN apk del .build
 
-COPY ./app/bgpProducer.py /app/
+RUN mkdir /app && \
+    mkdir /app/logs
 
-ENTRYPOINT ["/bin/bash"]
+WORKDIR /app
+
+COPY ./app/*.py /app/
+
+ENTRYPOINT ["/bin/sh"]
+

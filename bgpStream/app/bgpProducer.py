@@ -1,6 +1,5 @@
 import sys
-import argparse
-import os 
+import argparse 
 import arrow
 import msgpack
 import configparser
@@ -41,19 +40,20 @@ def getRecordDict(record):
     return recordDict
 
 class BGPProducer:
-    def __init__(self, record_type, collector, start, end):
+    def __init__(self, record_type, collector, start, end, topic_header):
         self.record_type = record_type
         self.collector = collector
         self.start = start
         self.end = end
+        self.topic_header = topic_header
 
         self.config = configparser.ConfigParser()
         self.config.read('/app/config.ini')
 
         FORMAT = '%(asctime)s BGPProducer %(message)s'
         logging.basicConfig(
-            format=FORMAT, filename=f'{self.config["DEFAULT"]["LogLocation"]}/{start.year}-{start.month}-ihr-kafka-BGPProducer.log',
-            level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S'
+            format=FORMAT, filename=f'{self.config["DEFAULT"]["LogLocation"]}/{start.year}-{start.month}-{self.collector}-ihr-kafka-BGPProducer.log',
+            level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S'
         )
 
     def _delivery_report(self, err, msg):
@@ -81,7 +81,7 @@ class BGPProducer:
         return stream
 
     def _create_topic(self):
-        topicName = f"{os.environ['TOPIC']}_ihr_bgp_{self.collector}_{self.record_type}"
+        topicName = f"{self.topic_header}_ihr_bgp_{self.collector}_{self.record_type}"
         logging.info(f"[{topicName}] try to create topic")
 
         admin_client = AdminClient({
@@ -154,10 +154,10 @@ class BGPProducer:
                 # debug
                 if recordTimeStamp > debuger :
                     logging.debug(f"[{topic}] produced at {ts2dt(debuger//1000)}")
-                    debuger += 300000
+                    debuger += 3600000
 
         except Exception as e :
-            logging.error(f"[BGPProducer-{self.collector}] exit with error : {e}")
+            logging.error(f"[{topic}] exit with error : {e}")
             return
 
         finally:        
@@ -185,8 +185,9 @@ collector number and also the start time and the end time of data you want to pr
 
     start = arrow.get(args.startTime)
     end = arrow.get(args.endTime)
+    topic_header = "{}_{:02d}".format(start.year, start.month) 
 
     assert start.hour % 8 == 0, "You must download rib file at 8:00am, 16:00pm or 24:00am"
     assert args.type in ["updates","ribs"], "type should be 'updates' or 'ribs'"
 
-    BGPProducer(args.type, args.collector, start.naive, end.naive).produce()
+    BGPProducer(args.type, args.collector, start.naive, end.naive, topic_header).produce()

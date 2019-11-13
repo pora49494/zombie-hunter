@@ -1,7 +1,6 @@
 import msgpack
 import datetime
 import arrow
-import os
 import argparse
 import logging
 import configparser
@@ -19,10 +18,11 @@ class BGPScheduler :
     ''' BGPScheduler consume data from bgpSummarizer. It collect data from
     all collector and divide data into 10 different batch. It send data to 
     every batch once every minute'''
-    def __init__(self, collectors, start, end) :
+    def __init__(self, collectors, start, end, topic_header) :
         self.collectors = collectors
         self.start = start 
         self.end = end
+        self.topic_header = topic_header
 
         self.prefixes = defaultdict(int) 
         
@@ -48,7 +48,7 @@ class BGPScheduler :
 
     def _create_topic(self) :
         ''' create topic for bgpScheduler '''
-        topicName = f"{os.environ['TOPIC']}_{self.config['BGPScheduler']['SchedulerTopic']}"
+        topicName = f"{self.topic_header}_{self.config['BGPScheduler']['SchedulerTopic']}"
         batchNum = int(self.config['BGPScheduler']['PartitionNumber'])
         
         logging.info(f"[{topicName}] try to create topic")        
@@ -60,44 +60,54 @@ class BGPScheduler :
         for topic, f in created_topic.items():
             try:
                 f.result()  # The result itself is None
-                logging.info(f"[{topic}] topic created")  
+                logging.info(f"[{topic}] topic created")
+                  
             except Exception as e:
                 logging.error(f"failed to create topic {topic}: {e}")
-
-        logging.info(f"[{topicName}] topic created")  
-
+        
         return topicName
-
+        
     def get_consumer(self, topics): 
-        ''' get_customer() create a consumer interface and set the offset to the 
-        start timestamp. '''
-        consumer = Consumer({ 
-            'bootstrap.servers': 'localhost:9092',
-            'group.id': 'mygroup',
-            'client.id': 'client-1',
-            'enable.auto.commit': True,
-            'session.timeout.ms': 6000,
-            'max.poll.interval.ms': 600000,
-            'default.topic.config': {'auto.offset.reset': 'smallest'},
-        }) 
-        topicPartitions = [ TopicPartition(topic, 0, dt2ts(self.start)*1000 ) for topic in topics ]
-        offsetsTimestamp = consumer.offsets_for_times(topicPartitions)
-        consumer.assign(offsetsTimestamp)        
-        return consumer
-    
+        try :
+            ''' get_customer() create a consumer interface and set the offset to the 
+            start timestamp. '''
+            consumer = Consumer({ 
+                'bootstrap.servers': 'localhost:9092',
+                'group.id': 'mygroup',
+                'client.id': 'client-1',
+                'enable.auto.commit': True,
+                'session.timeout.ms': 6000,
+                'max.poll.interval.ms': 600000,
+                'default.topic.config': {'auto.offset.reset': 'smallest'},
+            }) 
+            topicPartitions = [ TopicPartition(topic, 0, dt2ts(self.start)*1000 ) for topic in topics ]
+            offsetsTimestamp = consumer.offsets_for_times(topicPartitions)
+            consumer.assign(offsetsTimestamp)        
+            logging.debug(f"[get_consumer] successfully create customer")
+
+            return consumer
+        
+        except Exception as e:
+            logging.error(f"failed to create consumer: {e}")
+            return None 
+
     def run(self) :
         ''' bgpSummarizer consuming rib and update, summarize it then publish. '''
         _ = self._create_topic()
 
         logging.info("[BGPScheduler] start comsuming summary")
 
-        topics = [f"{os.environ['TOPIC']}_ihr_bgp_summary_{c}" for c in self.collectors]  
+        topics = [f"{self.topic_header}_ihr_bgp_summary_{c}" for c in self.collectors]  
         topicPartitionList = [ TopicPartition(t, 0) for t in topics ]
         topics_num = len(topics)
         
         consumer = self.get_consumer(topics)
         interval = int(self.config['DEFAULT']['Interval'])
         current = dt2ts(self.start)*1000 + interval
+
+        if consumer is None :
+            logging.error("No consumer found: exit")
+            return 
 
         pause = 0
         try:
@@ -179,14 +189,14 @@ class BGPScheduler :
                     logging.error(e)
                     self.producer.poll(1)
         
-        logging.debug(f"[BGPScheduler] producer message at {ts2dt(ts//1000)} total of {len(self.prefixes)}" )   
+        logging.info(f"[BGPScheduler] producer message at {ts2dt(ts//1000)} total of {len(self.prefixes)}" )   
         self.producer.flush()
 
     def _send_end(self, error) :
         batchNum = int(self.config['BGPScheduler']['PartitionNumber'])
         for i in range(batchNum) : 
             self.producer.produce(
-                f"{os.environ['TOPIC']}_{self.config['BGPScheduler']['SchedulerTopic']}", 
+                f"{self.topic_header}_{self.config['BGPScheduler']['SchedulerTopic']}", 
                 partition=i,
                 value = msgpack.packb({
                     'end': True ,
@@ -211,6 +221,7 @@ to the zombieDetector"
 
     start = arrow.get(args.startTime)
     end = arrow.get(args.endTime)
+    topic_header = "{}_{:02d}".format(start.year, start.month)
 
     assert start.hour % 8 == 0, "You must download rib file at 8:00am, 16:00pm or 24:00am"
 
@@ -220,6 +231,6 @@ to the zombieDetector"
             collectors.append("rrc{:02d}".format(i))
     else : 
         for rrc in args.collectors.split(",") : 
-            collectors.append(rrc)
+            collectors.append(rrc.strip())
 
-    BGPScheduler(collectors, start.naive, end.naive).run()
+    BGPScheduler(collectors, start.naive, end.naive, topic_header).run()

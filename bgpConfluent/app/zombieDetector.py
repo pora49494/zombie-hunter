@@ -17,10 +17,11 @@ def dt2ts(dt):
     return int((dt - datetime.datetime(1970, 1, 1)).total_seconds())
 
 class ZombieDetector : 
-    def __init__(self, partition, start, end ): 
+    def __init__(self, partition, start, end, topic_header): 
         self.partition = partition
         self.start = start 
         self.end = end 
+        self.topic_header = topic_header 
         
         self.config = configparser.ConfigParser()
         self.config.read('/app/config.ini')
@@ -30,8 +31,8 @@ class ZombieDetector :
 
         FORMAT = '%(asctime)s ZombieDetector %(message)s'
         logging.basicConfig(
-            format=FORMAT, filename=f'{self.config["DEFAULT"]["LogLocation"]}/{start.year}-{start.month}-ihr-kafka-ZombieDetector.log',
-            level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S'
+            format=FORMAT, filename=f'{self.config["DEFAULT"]["LogLocation"]}/{start.year}-{start.month}-ihr-kafka-ZombieDetector-{self.partition}.log',
+            level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S'
         )
 
         maxlen = 3600000 // int(self.config['DEFAULT']['Interval'])
@@ -40,19 +41,27 @@ class ZombieDetector :
         self.prefixes = defaultdict(lambda: deque(maxlen=maxlen+2))
         
     def get_consumer(self) :
-        consumer = Consumer({ 
-            'bootstrap.servers': self.config['DEFAULT']['KafkaServer'],
-            'group.id': 'mygroup',
-            'client.id': 'client-1',
-            'enable.auto.commit': True,
-            'session.timeout.ms': 6000,
-            'default.topic.config': {'auto.offset.reset': 'smallest'},
-        })
+        try :
+            consumer = Consumer({ 
+                'bootstrap.servers': self.config['DEFAULT']['KafkaServer'],
+                'group.id': 'mygroup',
+                'client.id': 'client-1',
+                'enable.auto.commit': True,
+                'session.timeout.ms': 6000,
+                'default.topic.config': {'auto.offset.reset': 'smallest'},
+            })
 
-        topicPartitions = [ TopicPartition( f"{os.environ['TOPIC']}_{self.config['BGPScheduler']['SchedulerTopic']}", self.partition, dt2ts(self.start)*1000 ) ]
-        offsetsTimestamp = consumer.offsets_for_times(topicPartitions)
-        consumer.assign(offsetsTimestamp)        
-        return consumer
+            topic = f"{self.topic_header}_{self.config['BGPScheduler']['SchedulerTopic']}"
+            topicPartitions = [ TopicPartition( topic, self.partition, dt2ts(self.start)*1000 ) ]
+            offsetsTimestamp = consumer.offsets_for_times(topicPartitions)
+            consumer.assign(offsetsTimestamp)        
+            
+            return consumer
+        except Exception as e :
+            logging.error(f"[{topic}] {e}") 
+            return 
+        
+        
 
     def run(self) :         
         name = f"zombieDetector-{self.partition}"
@@ -60,7 +69,8 @@ class ZombieDetector :
 
         maxlen = 3600000 // int(self.config['DEFAULT']['Interval'])
         consumer = self.get_consumer()
-
+        if consumer == None :
+            return 
         try :
             while True :
                 msg = consumer.poll(1)
@@ -110,6 +120,9 @@ class ZombieDetector :
             if self.prefixes[p][-1] < self.max_peer[p]*0.5 and self.prefixes[p][-1]:
                 content = f"zombieDetector-{self.partition} | {p} | {ts2dt(ts//1000)} | {self.max_peer[p]} | {self.prefixes[p]} \n"
                 self.file.write(content)
+        
+        if random.randint(1,100000) % 99999 == 0 :
+            logging.debug(f"zombieDetector-{self.partition} | {p} | {ts2dt(ts//1000)} | {self.max_peer[p]} | {self.prefixes[p]}")
 
 if __name__ == '__main__':
     text = "This script look for the zombie activity in data recieved from the scheduler"
@@ -122,8 +135,9 @@ if __name__ == '__main__':
 
     start = arrow.get(args.startTime)
     end = arrow.get(args.endTime)
+    topic_header = "{}_{:02d}".format(start.year, start.month)
 
     assert start.hour % 8 == 0, "You must download rib file at 8:00am, 16:00pm or 24:00am"
 
-    ZombieDetector(int(args.partition), start.naive, end.naive).run()
+    ZombieDetector(int(args.partition), start.naive, end.naive, topic_header).run()
      

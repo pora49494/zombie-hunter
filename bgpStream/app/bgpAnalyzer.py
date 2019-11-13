@@ -1,4 +1,3 @@
-import os
 import arrow
 import msgpack
 import datetime
@@ -22,10 +21,11 @@ class BGPAnalyzer:
     number of peers which annouce prefix for each interval, the reciever of
     this producer it to the bgpScheduler. '''
 
-    def __init__(self, collector, start, end):
+    def __init__(self, collector, start, end, topic_header):
         self.start = start
         self.end = end
         self.collector = collector
+        self.topic_header = topic_header
         
         self.prefixes = defaultdict(set)
 
@@ -34,7 +34,7 @@ class BGPAnalyzer:
 
         FORMAT = '%(asctime)s BGPAnalyzer %(message)s'
         logging.basicConfig(
-            format=FORMAT, filename=f'{self.config["DEFAULT"]["LogLocation"]}/{start.year}-{start.month}-ihr-kafka-BGPAnalyzer.log',
+            format=FORMAT, filename=f'{self.config["DEFAULT"]["LogLocation"]}/{start.year}-{start.month}-{self.collector}-ihr-kafka-BGPAnalyzer.log',
             level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S'
         )
 
@@ -70,7 +70,7 @@ class BGPAnalyzer:
     def _consume_rib(self):
         ''' _consume_rib() consume rib data from the given topic. '''
         
-        topic = f"{os.environ['TOPIC']}_ihr_bgp_{self.collector}_ribs"
+        topic = f"{self.topic_header}_ihr_bgp_{self.collector}_ribs"
         
         logging.info(f"[BGPAnalyzer-{self.collector}] start consuming rib data")
         consumer = self.get_consumer(topic)
@@ -113,7 +113,7 @@ class BGPAnalyzer:
     def _consume_upd(self):
         logging.info(f"[BGPAnalyzer-{self.collector}] start comsuming updates")
         
-        topic = f"{os.environ['TOPIC']}_ihr_bgp_{self.collector}_updates"
+        topic = f"{self.topic_header}_ihr_bgp_{self.collector}_updates"
         consumer = self.get_consumer(topic)
 
         interval = int(self.config['DEFAULT']['Interval'])
@@ -208,7 +208,7 @@ class BGPAnalyzer:
             pass
 
     def _produce(self, offset):
-        topicName = f"{os.environ['TOPIC']}_ihr_bgp_summary_{self.collector}"
+        topicName = f"{self.topic_header}_ihr_bgp_summary_{self.collector}"
 
         for p in self.prefixes:
             self.producer.produce(
@@ -245,7 +245,8 @@ if __name__ == '__main__':
 
     start = arrow.get(args.startTime)
     end = arrow.get(args.endTime)
+    topic_header = "{}_{:02d}".format(start.year, start.month)
 
     assert start.hour % 8 == 0, "You must download rib file at 8:00am, 16:00pm or 24:00am"
 
-    BGPAnalyzer(args.collector, start.naive, end.naive).run()
+    BGPAnalyzer(args.collector, start.naive, end.naive, topic_header).run()

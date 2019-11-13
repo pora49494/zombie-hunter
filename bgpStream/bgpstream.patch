@@ -1,0 +1,19 @@
+ 
+--- configure.ac
++++ configure.ac
+@@ -123,15 +123,6 @@
+
+ # Checks for mandatory libraries
+
+-# this code is needed to get the right threading library on a mac
+-STASH_CFLAGS="$CFLAGS"
+-CFLAGS=
+-AX_PTHREAD(, [AC_MSG_ERROR([pthreads required])])
+-CFLAGS="$STASH_CFLAGS"
+-LIBS="$PTHREAD_LIBS $LIBS"
+-CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+-CC="$PTHREAD_CC"
+-
+ # check that wandio is installed and HTTP support is enabled
+ AC_SEARCH_LIBS([wandio_create], [wandio], [with_wandio=yes],
+                [AC_MSG_ERROR(
