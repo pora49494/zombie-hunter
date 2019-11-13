@@ -31,7 +31,7 @@ class ZombieDetector :
 
         FORMAT = '%(asctime)s ZombieDetector %(message)s'
         logging.basicConfig(
-            format=FORMAT, filename=f'{self.config["DEFAULT"]["LogLocation"]}/{start.year}-{start.month}-ihr-kafka-ZombieDetector-{self.partition}.log',
+            format=FORMAT, filename=f'{self.config["DEFAULT"]["LogLocation"]}/{start.year}-{start.month}-ihr-kafka-ZombieDetector.log',
             level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S'
         )
 

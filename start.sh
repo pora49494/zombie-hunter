@@ -16,6 +16,10 @@ do
      
     echo "[RUN] run producer containers"
     for i in $(seq -w 0 23) ; do
+        if [[ $i == "02" ]] || [[ $i == "08" ]] || [[ $i == "09" ]] || [[ $i == "17" ]] ; then 
+            continue
+        fi 
+        
         docker run -d \
         --name "${TOPIC_HEADER}_producer_${i}" \
         --network host \
@@ -63,7 +67,7 @@ do
         if [[ -z $(docker ps -q) ]]; then
             break     
         fi
-        sleep 600
+        sleep 300
     done 
 
     echo "[CLEAN UP]: delete topic" 

@@ -34,7 +34,7 @@ class BGPAnalyzer:
 
         FORMAT = '%(asctime)s BGPAnalyzer %(message)s'
         logging.basicConfig(
-            format=FORMAT, filename=f'{self.config["DEFAULT"]["LogLocation"]}/{start.year}-{start.month}-{self.collector}-ihr-kafka-BGPAnalyzer.log',
+            format=FORMAT, filename=f'{self.config["DEFAULT"]["LogLocation"]}/{start.year}-{start.month}-ihr-kafka-BGPProducer-{self.collector}.log',
             level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S'
         )
 

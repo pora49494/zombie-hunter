@@ -52,7 +52,7 @@ class BGPProducer:
 
         FORMAT = '%(asctime)s BGPProducer %(message)s'
         logging.basicConfig(
-            format=FORMAT, filename=f'{self.config["DEFAULT"]["LogLocation"]}/{start.year}-{start.month}-{self.collector}-ihr-kafka-BGPProducer.log',
+            format=FORMAT, filename=f'{self.config["DEFAULT"]["LogLocation"]}/{start.year}-{start.month}-ihr-kafka-BGPProducer-{self.collector}.log',
             level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S'
         )
 
