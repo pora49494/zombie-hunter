@@ -38,7 +38,7 @@ class ZombieDetector :
         maxlen = 3600000 // int(self.config['DEFAULT']['Interval'])
         self.over_50 = defaultdict(lambda: True)
         self.max_peer = defaultdict(int)
-        self.prefixes = defaultdict(lambda: deque(maxlen=maxlen+2))
+        self.prefixes = defaultdict(lambda: deque(maxlen=maxlen+5))
         
     def get_consumer(self) :
         try :
@@ -112,13 +112,13 @@ class ZombieDetector :
 
         self.prefixes[p].append(v)
         self.max_peer[p] = max(v, self.max_peer[p])
-
+        
         if len( self.prefixes[p] ) < maxlen+2:
             return  
     
         if self.prefixes[p][-maxlen] < self.max_peer[p]*0.5 and self.prefixes[p][-maxlen-1] >= self.max_peer[p]*0.5 :
             if self.prefixes[p][-1] < self.max_peer[p]*0.5 and self.prefixes[p][-1]:
-                content = f"zombieDetector-{self.partition} | {p} | {ts2dt(ts//1000)} | {self.max_peer[p]} | {self.prefixes[p]} \n"
+                content = f"{self.partition} | {p} | {ts2dt(ts//1000)} | {self.max_peer[p]} | {self.prefixes[p]} \n"
                 self.file.write(content)
         
         if random.randint(1,100000) % 99999 == 0 :

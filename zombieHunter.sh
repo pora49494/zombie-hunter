@@ -11,13 +11,13 @@ case $JOB in
 
     scheduler)
         echo "scheduler"
-        sleep 30
+        sleep 60
         python3 /app/bgpScheduler.py -s $START -e $END -c all 
         ;;
 
     detector)
         echo "detector"
-        sleep 60
+        sleep 120
         python3 /app/zombieDetector.py -s $START -e $END -p $partition 
         ;;
 esac

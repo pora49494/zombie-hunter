@@ -230,8 +230,10 @@ to the zombieDetector"
         for i in range(24) :
             if i == 2 or i == 17 or i == 8 or i == 9 :
                 continue
-            elif (i == 22 or i == 23) and start.naive < datetime.datetime(2018,1,1) : 
+            elif i == 22 or i == 23 : 
                 continue
+            # elif (i == 22 or i == 23) and start.naive < datetime.datetime(2018,1,1) : 
+            #     continue
             collectors.append("rrc{:02d}".format(i))
     else : 
         for rrc in args.collectors.split(",") : 
