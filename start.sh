@@ -38,6 +38,7 @@ do
     --name "${TOPIC_HEADER}_scheduler" \
     --network host \
     -v "${PWD}"/data/logs:/app/logs \
+    -v "${PWD}"/data/buf:/app/buf \
     -v "${PWD}"/config.ini:/app/config.ini \
     -v "${PWD}"/zombieHunter.sh:/app/zombieHunter.sh \
     -e JOB="scheduler" \
