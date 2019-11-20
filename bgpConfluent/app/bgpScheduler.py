@@ -46,6 +46,8 @@ class BGPScheduler :
             'linger.ms': 20.0
         })
 
+        self.buf = set()
+
     def _create_topic(self) :
         ''' create topic for bgpScheduler '''
         topicName = f"{self.topic_header}_{self.config['BGPScheduler']['SchedulerTopic']}"
@@ -68,28 +70,34 @@ class BGPScheduler :
         return topicName
         
     def get_consumer(self, topics): 
-        try :
-            ''' get_customer() create a consumer interface and set the offset to the 
-            start timestamp. '''
-            consumer = Consumer({ 
-                'bootstrap.servers': 'localhost:9092',
-                'group.id': 'mygroup',
-                'client.id': 'client-1',
-                'enable.auto.commit': True,
-                'session.timeout.ms': 6000,
-                'max.poll.interval.ms': 600000,
-                'default.topic.config': {'auto.offset.reset': 'smallest'},
-            }) 
-            topicPartitions = [ TopicPartition(topic, 0, dt2ts(self.start)*1000 ) for topic in topics ]
-            offsetsTimestamp = consumer.offsets_for_times(topicPartitions)
-            consumer.assign(offsetsTimestamp)        
-            logging.debug(f"[get_consumer] successfully create customer")
+        willtry = 0
+        while True :
+            if willtry > 1000 :
+                logging.error(f"failed to create consumer: no try left")
+                return None
+            try :
+                ''' get_customer() create a consumer interface and set the offset to the 
+                start timestamp. '''
+                consumer = Consumer({ 
+                    'bootstrap.servers': 'localhost:9092',
+                    'group.id': 'mygroup',
+                    'client.id': 'client-1',
+                    'enable.auto.commit': True,
+                    'session.timeout.ms': 6000,
+                    'max.poll.interval.ms': 600000,
+                    'default.topic.config': {'auto.offset.reset': 'smallest'},
+                }) 
+                topicPartitions = [ TopicPartition(topic, 0, dt2ts(self.start)*1000 ) for topic in topics ]
+                offsetsTimestamp = consumer.offsets_for_times(topicPartitions)
+                consumer.assign(offsetsTimestamp)        
+                logging.debug(f"[get_consumer] successfully create customer")
 
-            return consumer
-        
-        except Exception as e:
-            logging.error(f"failed to create consumer: {e}")
-            return None 
+                return consumer
+            
+            except Exception as e:
+                logging.error(f"failed to create consumer: {e}, try {willtry}/1000")
+                
+            willtry += 1
 
     def run(self) :
         ''' bgpSummarizer consuming rib and update, summarize it then publish. '''
@@ -122,20 +130,43 @@ class BGPScheduler :
                         break 
 
                     self.prefixes.clear()  
-                    current += interval                   
+                    current += interval         
+
                     pause = 0
+                    
+                    if current in self.buf :
+                        self.buf.remove(current)
+                        logging.warning("[BGPScheduler] Found the buffer, start reading")
+                        f = open( f'{self.config["BGPScheduler"]["BufLocation"]}/{self.topic_header}-{current}', "rb" )
+                        for msg in f.read().strip().split(b'\n') :
+                            message = msgpack.unpackb(msg, raw=False)
+                            if 'end' in message :
+                                logging.error("found premature end message, pausing the consumption")
+                                consumer.pause([TopicPartition(message['topic'], 0)]) 
+                                pause += 1
+                            else :
+                                prefix = message['prefix']
+                                self.prefixes[prefix] += message['value'] 
                     
                 msg = consumer.poll(0.1)
                 if msg is None:
                     continue
 
                 elif not msg.error(): 
-                    if msg.timestamp()[1] != current :
-                        logging.error(f"{msg.topic()} timestamp not match, expected: {current} recieve: {msg.timestamp()[1]}") 
-                        self._send_end(True)
-                        break 
+                    msg_ts = msg.timestamp()[1]
+                    if msg_ts < current :
+                        logging.warning(f"{msg.topic()} timestamp not match, expected: {ts2dt(current//1000)} recieved: {ts2dt(msg_ts//1000)} diff : {msg_ts-current} action : drop")
+                    elif msg_ts > current : 
+                        if msg_ts not in self.buf :
+                            self.buf.add(msg_ts)
+                        logging.warning(f"{msg.topic()} timestamp not match, expected: {ts2dt(current//1000)} recieved: {ts2dt(msg_ts//1000)} diff : {msg_ts-current} action : buffering")
+                        f = open( f'{self.config["BGPScheduler"]["BufLocation"]}/{self.topic_header}-{msg_ts}', "wb+" ) 
+                        f.write( msg.value() + b'\n' ) 
+                        f.close()
+                        continue
 
                     message = msgpack.unpackb(msg.value(), raw=False)
+                    
                     if 'end' in message :
                         consumer.pause([TopicPartition(msg.topic(), 0)]) 
                         pause += 1

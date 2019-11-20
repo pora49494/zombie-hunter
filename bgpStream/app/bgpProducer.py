@@ -101,7 +101,7 @@ class BGPProducer:
 
     def produce(self):
         # debug
-        debuger = (dt2ts(self.start) + 300) * 1000  
+        debuger = dt2ts(self.start) * 1000  
 
         stream = self.getBGPStream()
         topic = self._create_topic()

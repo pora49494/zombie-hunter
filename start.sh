@@ -71,10 +71,10 @@ do
     done 
 
     echo "[CLEAN UP]: delete topic" 
-    A=$(~/kafka_2.12-2.2.0/bin/kafka-topics.sh --zookeeper localhost:2181 --list)
+    A=$(~/kafka_2.12-2.3.0/bin/kafka-topics.sh --zookeeper localhost:2181 --list)
     for i in $A; do
         if [[ $i == "${TOPIC_HEADER}_"* ]]; then
-            ~/kafka_2.12-2.2.0/bin/kafka-topics.sh --zookeeper localhost:2181 --delete --topic $i
+            ~/kafka_2.12-2.3.0/bin/kafka-topics.sh --zookeeper localhost:2181 --delete --topic $i
         fi
     done 
 

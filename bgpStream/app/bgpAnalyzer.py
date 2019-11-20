@@ -133,19 +133,22 @@ class BGPAnalyzer:
                         logging.info(f'[{topic}] exceeding time window')
                         break
 
-                    pause = False
+                    # pause = False
                     if msg.timestamp()[1] - offset > largeTimeWindow:
-                        pause = True
-                        consumer.pause([TopicPartition(msg.topic(), 0)])
-                        logging.info(f"[{topic}] LARGE_WINDOW pause consuming")
+                        logging.warning(f"[{topic}] recieve an out of order message at {ts2dt(msg.timestamp()[1]//1000)} : Drop")
+                        continue
+                        # pause = True
+                        
+                        # consumer.pause([TopicPartition(msg.topic(), 0)])
+                        # logging.info(f"[{topic}] LARGE_WINDOW pause consuming")
 
                     while offset < msg.timestamp()[1]:
                         self._produce(offset)
                         offset += interval
 
-                    if pause:
-                        consumer.resume([TopicPartition(msg.topic(), 0)])
-                        logging.info(f"[{topic}] LARGE_WINDOW end, resume consuming")
+                    # if pause:
+                    #     consumer.resume([TopicPartition(msg.topic(), 0)])
+                    #     logging.info(f"[{topic}] LARGE_WINDOW end, resume consuming")
 
                     message = msgpack.unpackb(msg.value(), raw=False)
                     if 'end' in message :
@@ -224,7 +227,10 @@ class BGPAnalyzer:
 
         self.producer.produce(
             topicName,
-            msgpack.packb({'end': True}, use_bin_type=True),
+            msgpack.packb({
+                'end': True,
+                'topic': topicName
+            }, use_bin_type=True),
             callback=self._delivery_report,
             timestamp=offset
         )

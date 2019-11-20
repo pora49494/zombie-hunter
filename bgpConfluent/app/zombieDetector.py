@@ -35,7 +35,7 @@ class ZombieDetector :
             level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S'
         )
 
-        maxlen = 3600000 // int(self.config['DEFAULT']['Interval'])
+        maxlen = int(self.config['ZombieDetector']['WaitFor']) // int(self.config['DEFAULT']['Interval'])
         self.over_50 = defaultdict(lambda: True)
         self.max_peer = defaultdict(int)
         self.prefixes = defaultdict(lambda: deque(maxlen=maxlen+5))
@@ -67,7 +67,7 @@ class ZombieDetector :
         name = f"zombieDetector-{self.partition}"
         logging.info(f"[{name}] start consuming")
 
-        maxlen = 3600000 // int(self.config['DEFAULT']['Interval'])
+        maxlen = int(self.config['ZombieDetector']['WaitFor']) // int(self.config['DEFAULT']['Interval'])
         consumer = self.get_consumer()
         if consumer == None :
             return 
