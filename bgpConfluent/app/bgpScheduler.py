@@ -205,7 +205,7 @@ class BGPScheduler :
             while True:
                 try:
                     self.producer.produce(
-                        self.config['BGPScheduler']['SchedulerTopic'], 
+                        f"{self.topic_header}_{self.config['BGPScheduler']['SchedulerTopic']}", 
                         msgpack.packb({
                             'prefix': p,
                             'value': self.prefixes[p] 
