@@ -20,7 +20,8 @@ RUN pip3 install \
 RUN apk del .build
 
 RUN mkdir /app && \
-    mkdir /app/logs
+    mkdir /app/logs && \
+    mkdir /app/buf
 
 WORKDIR /app
 
