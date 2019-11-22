@@ -120,6 +120,7 @@ class ZombieDetector :
             if self.prefixes[p][-1] < self.max_peer[p]*0.5 and self.prefixes[p][-1]:
                 content = f"{self.partition} | {p} | {ts2dt(ts//1000)} | {self.max_peer[p]} | {self.prefixes[p]} \n"
                 self.file.write(content)
+                self.file.flush()
         
         if random.randint(1,100000) % 99999 == 0 :
             logging.debug(f"zombieDetector-{self.partition} | {p} | {ts2dt(ts//1000)} | {self.max_peer[p]} | {self.prefixes[p]}")
