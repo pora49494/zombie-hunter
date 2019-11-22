@@ -15,7 +15,7 @@ do
     sed -i "s/%MONTH_ENV%/${MONTH_ENV}/g" env
      
     echo "[RUN] run producer containers"
-    for i in $(seq -w 0 23) ; do
+    for i in $(seq -w 0 21) ; do
         if [[ $i == "02" ]] || [[ $i == "08" ]] || [[ $i == "09" ]] || [[ $i == "17" ]] ; then 
             continue
         fi 
