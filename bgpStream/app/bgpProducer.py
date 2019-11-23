@@ -9,6 +9,8 @@ from confluent_kafka import Producer
 from confluent_kafka.admin import AdminClient, NewTopic
 from _pybgpstream import BGPStream, BGPRecord
 
+MAX_ELEMENT = 10
+
 def dt2ts(dt):
     return int((dt - datetime(1970, 1, 1)).total_seconds())
 
@@ -131,13 +133,30 @@ class BGPProducer:
 
                 completeRecord = dict()
                 completeRecord["rec"] = getRecordDict(rec)
-                completeRecord["elements"] = []
                 recordTimeStamp = int(rec.time) * 1000
-
+                
+                completeRecord["elements"] = []
                 elem = rec.get_next_elem()
+                count = 0 
+
                 while(elem):
                     elementDict = getElementDict(elem)
                     completeRecord["elements"].append(elementDict)
+                    count += 1
+
+                    if count > MAX_ELEMENT :
+                        producer.produce(
+                            topic,
+                            msgpack.packb({
+                                'record': completeRecord
+                            }, use_bin_type=True),
+                            callback=self._delivery_report,
+                            timestamp=recordTimeStamp
+                        )
+                        producer.poll(0)
+                        completeRecord["elements"] = []
+                        count = 0 
+
                     elem = rec.get_next_elem()
 
                 if len(completeRecord['elements']): 
