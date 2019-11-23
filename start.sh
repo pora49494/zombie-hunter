@@ -85,6 +85,6 @@ do
         docker rm $i
     done  
 
-    sleep(120)
+    sleep 120
     
 done
