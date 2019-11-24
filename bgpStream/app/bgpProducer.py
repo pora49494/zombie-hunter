@@ -9,7 +9,7 @@ from confluent_kafka import Producer
 from confluent_kafka.admin import AdminClient, NewTopic
 from _pybgpstream import BGPStream, BGPRecord
 
-MAX_ELEMENT = 10
+MAX_ELEMENT = 5
 
 def dt2ts(dt):
     return int((dt - datetime(1970, 1, 1)).total_seconds())
@@ -55,7 +55,7 @@ class BGPProducer:
         FORMAT = '%(asctime)s BGPProducer %(message)s'
         logging.basicConfig(
             format=FORMAT, filename=f'{self.config["DEFAULT"]["LogLocation"]}/{start.year}-{start.month}-ihr-kafka-BGPProducer-{self.collector}.log',
-            level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S'
+            level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S'
         )
 
     def _delivery_report(self, err, msg):
@@ -114,7 +114,7 @@ class BGPProducer:
                 'queue.buffering.max.messages': 1000000,
             },
             'batch.num.messages': 10000*10,
-            'message.max.bytes': 1000000*10
+            'message.max.bytes': 1000000
         })
 
         rec = BGPRecord()

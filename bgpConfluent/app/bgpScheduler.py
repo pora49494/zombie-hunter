@@ -46,7 +46,7 @@ class BGPScheduler :
             'linger.ms': 20.0
         })
 
-        self.buf = set()
+        # self.buf = set()
 
     def _create_topic(self) :
         ''' create topic for bgpScheduler '''
@@ -84,7 +84,7 @@ class BGPScheduler :
                     'client.id': 'client-1',
                     'enable.auto.commit': True,
                     'session.timeout.ms': 6000,
-                    'max.poll.interval.ms': 600000,
+                    'max.poll.interval.ms': 6000000,
                     'default.topic.config': {'auto.offset.reset': 'smallest'},
                 }) 
                 topicPartitions = [ TopicPartition(topic, 0, dt2ts(self.start)*1000 ) for topic in topics ]
@@ -134,19 +134,19 @@ class BGPScheduler :
 
                     pause = 0
                     
-                    if current in self.buf :
-                        self.buf.remove(current)
-                        logging.warning("[BGPScheduler] Found the buffer, start reading")
-                        f = open( f'{self.config["BGPScheduler"]["BufLocation"]}/{self.topic_header}-{current}', "rb" )
-                        for msg in f.read().strip().split(b'\n') :
-                            message = msgpack.unpackb(msg, raw=False)
-                            if 'end' in message :
-                                logging.error("found premature end message, pausing the consumption")
-                                consumer.pause([TopicPartition(message['topic'], 0)]) 
-                                pause += 1
-                            else :
-                                prefix = message['prefix']
-                                self.prefixes[prefix] += message['value'] 
+                    # if current in self.buf :
+                    #     self.buf.remove(current)
+                    #     logging.warning("[BGPScheduler] Found the buffer, start reading")
+                    #     f = open( f'{self.config["BGPScheduler"]["BufLocation"]}/{self.topic_header}-{current}', "rb" )
+                    #     for msg in f.read().strip().split(b'\n') :
+                    #         message = msgpack.unpackb(msg, raw=False)
+                    #         if 'end' in message :
+                    #             logging.error("found premature end message, pausing the consumption")
+                    #             consumer.pause([TopicPartition(message['topic'], 0)]) 
+                    #             pause += 1
+                    #         else :
+                    #             prefix = message['prefix']
+                    #             self.prefixes[prefix] += message['value'] 
                     
                 msg = consumer.poll(0.1)
                 if msg is None:
@@ -156,14 +156,14 @@ class BGPScheduler :
                     msg_ts = msg.timestamp()[1]
                     if msg_ts < current :
                         logging.warning(f"{msg.topic()} timestamp not match, expected: {ts2dt(current//1000)} recieved: {ts2dt(msg_ts//1000)} diff : {msg_ts-current} action : drop")
-                    elif msg_ts > current : 
-                        if msg_ts not in self.buf :
-                            self.buf.add(msg_ts)
-                        logging.warning(f"{msg.topic()} timestamp not match, expected: {ts2dt(current//1000)} recieved: {ts2dt(msg_ts//1000)} diff : {msg_ts-current} action : buffering")
-                        f = open( f'{self.config["BGPScheduler"]["BufLocation"]}/{self.topic_header}-{msg_ts}', "wb+" ) 
-                        f.write( msg.value() + b'\n' ) 
-                        f.close()
-                        continue
+                    # elif msg_ts > current : 
+                    #     if msg_ts not in self.buf :
+                    #         self.buf.add(msg_ts)
+                    #     logging.warning(f"{msg.topic()} timestamp not match, expected: {ts2dt(current//1000)} recieved: {ts2dt(msg_ts//1000)} diff : {msg_ts-current} action : buffering")
+                    #     f = open( f'{self.config["BGPScheduler"]["BufLocation"]}/{self.topic_header}-{msg_ts}', "wb+" ) 
+                    #     f.write( msg.value() + b'\n' ) 
+                    #     f.close()
+                    #     continue
 
                     message = msgpack.unpackb(msg.value(), raw=False)
                     
@@ -195,7 +195,7 @@ class BGPScheduler :
         ''' Called once for each message produced to indicate delivery result.
         Triggered by poll() or flush(). '''
         if err is not None:
-            logging.error(f'message delivery failed: {err}')
+            logging.debug(f'message delivery failed: {err}')
         else:
             pass
 
