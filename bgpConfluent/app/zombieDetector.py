@@ -122,7 +122,7 @@ class ZombieDetector :
                 self.file.write(content)
                 self.file.flush()
         
-        if random.randint(1,100000) % 99999 == 0 :
+        if random.randint(1,1000000) % 999999 == 0 :
             logging.debug(f"zombieDetector-{self.partition} | {p} | {ts2dt(ts//1000)} | {self.max_peer[p]} | {self.prefixes[p]}")
 
 if __name__ == '__main__':

@@ -43,10 +43,7 @@ class BGPAnalyzer:
             'default.topic.config': {
                 'compression.codec': 'snappy',
                 'queue.buffering.max.messages': 1000000,
-            },
-            'batch.num.messages': 10000*10,
-            'message.max.bytes': 1000000*10,
-            'linger.ms': 20.0
+            }
         })
 
     def get_consumer(self, topic):
@@ -133,22 +130,21 @@ class BGPAnalyzer:
                         logging.info(f'[{topic}] exceeding time window')
                         break
 
-                    # pause = False
+                    pause = False
                     if msg.timestamp()[1] - offset > largeTimeWindow:
                         logging.warning(f"[{topic}] recieve an out of order message at {ts2dt(msg.timestamp()[1]//1000)} : Drop")
-                        continue
-                        # pause = True
+                        pause = True
                         
-                        # consumer.pause([TopicPartition(msg.topic(), 0)])
-                        # logging.info(f"[{topic}] LARGE_WINDOW pause consuming")
+                        consumer.pause([TopicPartition(msg.topic(), 0)])
+                        logging.info(f"[{topic}] LARGE_WINDOW pause consuming")
 
                     while offset < msg.timestamp()[1]:
                         self._produce(offset)
                         offset += interval
 
-                    # if pause:
-                    #     consumer.resume([TopicPartition(msg.topic(), 0)])
-                    #     logging.info(f"[{topic}] LARGE_WINDOW end, resume consuming")
+                    if pause:
+                        consumer.resume([TopicPartition(msg.topic(), 0)])
+                        logging.info(f"[{topic}] LARGE_WINDOW end, resume consuming")
 
                     message = msgpack.unpackb(msg.value(), raw=False)
                     if 'end' in message :
@@ -206,7 +202,7 @@ class BGPAnalyzer:
         ''' Called once for each message produced to indicate delivery result.
         Triggered by poll() or flush(). '''
         if err is not None:
-            logging.debug(f'[BGPAnalyzer-{self.collector}] message delivery failed: {err}')
+            logging.error(f'[BGPAnalyzer-{self.collector}] message delivery failed: {err}')
         else:
             pass
 

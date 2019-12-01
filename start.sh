@@ -71,13 +71,13 @@ do
         sleep 300
     done 
 
-    echo "[CLEAN UP]: delete topic" 
-    A=$(/home/pora/kafka_2.12-2.3.0/bin/kafka-topics.sh --zookeeper localhost:2181 --list)
-    for i in $A; do
-        if [[ $i == "${TOPIC_HEADER}_"* ]]; then
-            /home/pora/kafka_2.12-2.3.0/bin/kafka-topics.sh --zookeeper localhost:2181 --delete --topic $i
-        fi
-    done 
+    # echo "[CLEAN UP]: delete topic" 
+    # A=$(/home/pora/kafka_2.12-2.3.0/bin/kafka-topics.sh --zookeeper localhost:2181 --list)
+    # for i in $A; do
+    #     if [[ $i == "${TOPIC_HEADER}_"* ]]; then
+    #         /home/pora/kafka_2.12-2.3.0/bin/kafka-topics.sh --zookeeper localhost:2181 --delete --topic $i
+    #     fi
+    # done 
 
     echo "[CLEAN UP]: delete container"
     A=$(docker ps -qa)

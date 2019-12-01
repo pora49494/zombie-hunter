@@ -62,7 +62,7 @@ class BGPProducer:
         ''' Called once for each message produced to indicate delivery result.
         Triggered by poll() or flush(). '''
         if err is not None:
-            logging.debug(f'message delivery failed: {err}')
+            logging.error(f'message delivery failed: {err}')
         else:
             pass
 
@@ -79,18 +79,18 @@ class BGPProducer:
             _start = dt2ts(self.start - timedelta(hours=2))
             _end = dt2ts(self.start + timedelta(hours=2))
             stream.add_interval_filter(_start, _end)
-
+ 
         return stream
-
+ 
     def _create_topic(self):
         topicName = f"{self.topic_header}_ihr_bgp_{self.collector}_{self.record_type}"
         logging.info(f"[{topicName}] try to create topic")
 
-        admin_client = AdminClient({
-            'bootstrap.servers': self.config['DEFAULT']['KafkaServer']
-        })
-        topic_list = [NewTopic(topicName, num_partitions=1, replication_factor=1)]
-        created_topic = admin_client.create_topics(topic_list)
+        admin_client = AdminClient({ 
+            'bootstrap.servers': self.config['DEFAULT']['KafkaServer'] 
+        }) 
+        topic_list = [NewTopic(topicName, num_partitions=1, replication_factor=1)] 
+        created_topic = admin_client.create_topics(topic_list) 
 
         for topic, f in created_topic.items():
             try:
@@ -112,9 +112,7 @@ class BGPProducer:
             'default.topic.config': {
                 'compression.codec': 'snappy',
                 'queue.buffering.max.messages': 1000000,
-            },
-            'batch.num.messages': 10000*10,
-            'message.max.bytes': 1000000
+            }
         })
 
         rec = BGPRecord()
