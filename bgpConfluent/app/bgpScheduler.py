@@ -74,7 +74,7 @@ class BGPScheduler :
                 ''' get_customer() create a consumer interface and set the offset to the 
                 start timestamp. '''
                 consumer = Consumer({ 
-                    'bootstrap.servers': 'localhost:9092',
+                    'bootstrap.servers': self.config["DEFAULT"]["KafkaServer"],
                     'group.id': 'mygroup',
                     'client.id': 'client-1',
                     'enable.auto.commit': True,
