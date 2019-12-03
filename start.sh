@@ -34,7 +34,7 @@ do
     done 
 
     echo "[RUN] run scheduler containers"
-    docker run -d \
+    ssh pora-2 docker run -d \
     --name "${TOPIC_HEADER}_scheduler" \
     --network host \
     -v "${PWD}"/data/logs:/app/logs \
@@ -42,7 +42,8 @@ do
     -v "${PWD}"/config.ini:/app/config.ini \
     -v "${PWD}"/zombieHunter.sh:/app/zombieHunter.sh \
     -e JOB="scheduler" \
-    --env-file env \
+    -e START=${YEAR_ENV}-${MONTH_ENV}-10T00:00:00 \
+    -e END=${YEAR_ENV}-${MONTH_ENV}-20T00:00:00 \
     pora/bgpconfluent:latest \
     /app/zombieHunter.sh 
 
@@ -65,26 +66,18 @@ do
     echo "[CHECK]: check container's status"
     while :
     do
-        if [[ -z $(docker ps -q) ]]; then
+        if [[ -z $(docker ps -qf "${TOPIC_HEADER}_producer_") ]]; then
             break     
         fi
         sleep 300
     done 
 
-    # echo "[CLEAN UP]: delete topic" 
-    # A=$(/home/pora/kafka_2.12-2.3.0/bin/kafka-topics.sh --zookeeper localhost:2181 --list)
-    # for i in $A; do
-    #     if [[ $i == "${TOPIC_HEADER}_"* ]]; then
-    #         /home/pora/kafka_2.12-2.3.0/bin/kafka-topics.sh --zookeeper localhost:2181 --delete --topic $i
-    #     fi
-    # done 
-
     echo "[CLEAN UP]: delete container"
-    A=$(docker ps -qa)
+    A=$(docker ps -qf "${TOPIC_HEADER}_producer_")
     for i in $A; do 
         docker rm $i
     done  
 
-    sleep 120
+    sleep 300
     
 done

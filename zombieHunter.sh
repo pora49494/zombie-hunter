@@ -11,7 +11,6 @@ case $JOB in
 
     scheduler)
         echo "scheduler"
-        sleep 60
         python3 /app/bgpScheduler.py -s $START -e $END -c all 
         ;;
 
