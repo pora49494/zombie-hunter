@@ -66,28 +66,17 @@ do
     echo "[CHECK]: check container's status"
     while :
     do
-        if [[ -z $(docker ps -qf "${TOPIC_HEADER}_") ]]; then
+        if [[ -z $(docker ps -qf "name=${TOPIC_HEADER}_") ]]; then
             break     
         fi
         sleep 300
     done 
 
     echo "[CLEAN UP]: delete container"
-    A=$(docker ps -qf "${TOPIC_HEADER}_producer_")
+    A=$(docker ps -qf "name=${TOPIC_HEADER}_")
     for i in $A; do 
         docker rm $i
     done  
-
-    m=$(expr ${MONTH_ENV} + 0)
-    cd /home/pora/zombie-hunter/data/logs/ && \
-        find "${YEAR_ENV}-${m}-"* | xargs tar -czf ${TOPIC_HEADER}_logs.tar.gz  && \
-        scp ${TOPIC_HEADER}_logs.tar.gz pora-2:archive/ 
-    
-    cd /home/pora/zombie-hunter/data/zombies/ && \
-        find "${YEAR_ENV}-${m}-"* | xargs tar -czf ${TOPIC_HEADER}_zombies.tar.gz && \
-        scp ${TOPIC_HEADER}_zombies.tar.gz pora-2:archive/ 
-    
-    cd /home/pora/zombie-hunter/
 
     sleep 300
     
