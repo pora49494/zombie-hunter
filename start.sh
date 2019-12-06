@@ -101,6 +101,8 @@ do
         docker rm $i
     done  
 
+    cd ${CUR}
+    
     sleep 300
     
 done
