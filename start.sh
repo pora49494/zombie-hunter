@@ -68,7 +68,7 @@ do
     sudo chown pora:pora data
     sudo chown pora:pora data/*
     sudo chown pora:pora data/logs/*
-    sudo chown pora:pora data/zombies/*  
+    sudo chown pora:pora data/zombies/*
     
     month=$(expr MONTH_ENV + 0)
     CUR=$(pwd)
@@ -85,15 +85,6 @@ do
     tar -czf ${YEAR_ENV}-${month}-zombieHunter.tar.bz ${YEAR_ENV}-${month}-*
     scp ${YEAR_ENV}-${month}-zombieHunter.tar.bz pora-2:~/archive/zombies/
     mv ${YEAR_ENV}-${month}-zombieHunter.tar.bz ${CUR}/archive/
-    
-    echo "[CHECK]: check container's status"
-    while :
-    do
-        if [[ -z $(docker ps -qf "name=${TOPIC_HEADER}_") ]]; then
-            break     
-        fi
-        sleep 300
-    done 
 
     echo "[CLEAN UP]: delete container"
     A=$(docker ps -qaf "name=${TOPIC_HEADER}_")
