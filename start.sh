@@ -64,6 +64,16 @@ do
         /app/zombieHunter.sh 
     done    
 
+    echo "[CHECK]: check container's status"
+    while :
+    do
+        if [[ -z $(docker ps -qf "name=${TOPIC_HEADER}_") ]]; then
+            break
+        fi
+        sleep 300
+    done 
+
+
     echo "[FILE MANAGEMENT]: saving data"
     sudo chown pora:pora data
     sudo chown pora:pora data/*
