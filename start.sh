@@ -70,7 +70,7 @@ do
     sudo chown pora:pora data/logs/*
     sudo chown pora:pora data/zombies/*
     
-    month=$(expr MONTH_ENV + 0)
+    month=$(echo $MONTH_ENV | sed 's/^0*//')
     CUR=$(pwd)
 
     cd ${CUR}/data/logs/
@@ -82,9 +82,11 @@ do
     python3 filter.py ${YEAR_ENV}-${month}
     
     cd ${CUR}/data/zombies/
-    tar -czf ${YEAR_ENV}-${month}-zombieHunter.tar.bz ${YEAR_ENV}-${month}-*
+    tar -czf "${YEAR_ENV}-${month}-zombieHunter.tar.bz" ${YEAR_ENV}-${month}-*
     scp ${YEAR_ENV}-${month}-zombieHunter.tar.bz pora-2:~/archive/zombies/
     mv ${YEAR_ENV}-${month}-zombieHunter.tar.bz ${CUR}/archive/
+
+    cd ${CUR}
 
     echo "[CLEAN UP]: delete container"
     A=$(docker ps -qaf "name=${TOPIC_HEADER}_")
@@ -92,8 +94,6 @@ do
         docker rm $i
     done  
 
-    cd ${CUR}
-    
     sleep 300
     
 done
