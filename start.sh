@@ -34,7 +34,7 @@ do
     done 
 
     echo "[RUN] run scheduler containers"
-    ssh pora-2 docker run -d \
+    docker run -d \
     --name "${TOPIC_HEADER}_scheduler" \
     --network host \
     -v "${PWD}"/data/logs:/app/logs \
@@ -51,6 +51,7 @@ do
     for i in `seq 0 9` ; do         
         docker run -d \
         --name "${TOPIC_HEADER}_detector_${i}" \
+        --cpus="2" \
         --network host \
         -v "${PWD}"/data/logs:/app/logs \
         -v "${PWD}"/data/zombies:/app/zombies \
@@ -63,6 +64,28 @@ do
         /app/zombieHunter.sh 
     done    
 
+    echo "[FILE MANAGEMENT]: saving data"
+    chown pora:pora data
+    chown pora:pora data/*
+    chown pora:pora data/logs/*
+    chown pora:pora data/zombies/*  
+    
+    month=$(expr MONTH_ENV + 0)
+    CUR=$(pwd)
+
+    cd ${CUR}/data/logs/
+    tar -czf ${YEAR_ENV}-${month}-logs.tar.bz ${YEAR_ENV}-${month}-*
+    scp ${YEAR_ENV}-${month}-logs.tar.bz pora-2:~/archive/logs/
+    mv ${YEAR_ENV}-${month}-logs.tar.bz ${CUR}/archive/
+
+    cd ${CUR}
+    python3 filter.py ${YEAR_ENV}-${month}
+    
+    cd ${CUR}/data/zombies/
+    tar -czf ${YEAR_ENV}-${month}-zombieHunter.tar.bz ${YEAR_ENV}-${month}-*
+    scp ${YEAR_ENV}-${month}-zombieHunter.tar.bz pora-2:~/archive/zombies/
+    mv ${YEAR_ENV}-${month}-zombieHunter.tar.bz ${CUR}/archive/
+    
     echo "[CHECK]: check container's status"
     while :
     do
@@ -73,7 +96,7 @@ do
     done 
 
     echo "[CLEAN UP]: delete container"
-    A=$(docker ps -qf "name=${TOPIC_HEADER}_")
+    A=$(docker ps -qaf "name=${TOPIC_HEADER}_")
     for i in $A; do 
         docker rm $i
     done  

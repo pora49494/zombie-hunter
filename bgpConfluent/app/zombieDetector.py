@@ -22,12 +22,16 @@ class ZombieDetector :
         self.start = start 
         self.end = end 
         self.topic_header = topic_header 
-        
+        self.st_ts = dt2ts(self.start)*1000
+
         self.config = configparser.ConfigParser()
         self.config.read('/app/config.ini')
 
         file_loc = f"{self.config['ZombieDetector']['Result']}/{start.year}-{start.month}-zombieDetector-{args.partition}.txt"    
         self.file = open(file_loc, "w+")
+
+        file_loc = f"{self.config['ZombieDetector']['Result']}/{start.year}-{start.month}-active-route-{self.partition}.txt"
+        self.active = open(file_loc, "w+")
 
         FORMAT = '%(asctime)s ZombieDetector %(message)s'
         logging.basicConfig(
@@ -39,6 +43,9 @@ class ZombieDetector :
         self.over_50 = defaultdict(lambda: True)
         self.max_peer = defaultdict(int)
         self.prefixes = defaultdict(lambda: deque(maxlen=maxlen+5))
+
+        l = 1000*(dt2ts(end)-dt2ts(start)) // int(self.config['DEFAULT']['Interval'])
+        self.p = defaultdict(lambda: [ "-1" ] * (l+1) )
         
     def get_consumer(self) :
         try :
@@ -61,8 +68,6 @@ class ZombieDetector :
             logging.error(f"[{topic}] {e}") 
             return 
         
-        
-
     def run(self) :         
         name = f"zombieDetector-{self.partition}"
         logging.info(f"[{name}] start consuming")
@@ -102,8 +107,17 @@ class ZombieDetector :
         
         finally : 
             consumer.close()
-            logging.info(f'[{name}] done consuming')            
             self.file.close()
+            logging.info(f'[{name}] done consuming')   
+            
+            self.save()
+            logging.info(f'[{name}] done writing')   
+            
+    def save(self) :
+        for prefix in self.p : 
+            content = prefix + "," + ",".join(self.p[prefix]) + "\n"
+            self.active.write(content)
+        self.active.close()
 
     def _process(self, status, ts, maxlen) :
         
@@ -113,6 +127,9 @@ class ZombieDetector :
         self.prefixes[p].append(v)
         self.max_peer[p] = max(v, self.max_peer[p])
         
+        i = self._get_index(ts) 
+        self.p[p][i] = status['value']
+
         if len( self.prefixes[p] ) < maxlen+2:
             return  
     
@@ -124,6 +141,20 @@ class ZombieDetector :
         
         if random.randint(1,1000000) % 999999 == 0 :
             logging.debug(f"zombieDetector-{self.partition} | {p} | {ts2dt(ts//1000)} | {self.max_peer[p]} | {self.prefixes[p]}")
+    
+    def _create_file(self, st, en) :
+        header = ["prefixes"]
+        start = dt2ts(st)
+        end = dt2ts(en)
+        interval = int(self.config['DEFAULT']['Interval'])//1000
+        for i in range(start,end+1, interval) :
+            header.append(i)
+
+        self.active.write( ",".join(header) + "\n" )
+        self.active.flush()
+
+    def _get_index(self, ts) :
+        return (ts-self.st_ts)//int(self.config['DEFAULT']['Interval'])
 
 if __name__ == '__main__':
     text = "This script look for the zombie activity in data recieved from the scheduler"
@@ -141,4 +172,4 @@ if __name__ == '__main__':
     assert start.hour % 8 == 0, "You must download rib file at 8:00am, 16:00pm or 24:00am"
 
     ZombieDetector(int(args.partition), start.naive, end.naive, topic_header).run()
-     
+    
