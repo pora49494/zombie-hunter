@@ -65,10 +65,10 @@ do
     done    
 
     echo "[FILE MANAGEMENT]: saving data"
-    chown pora:pora data
-    chown pora:pora data/*
-    chown pora:pora data/logs/*
-    chown pora:pora data/zombies/*  
+    sudo chown pora:pora data
+    sudo chown pora:pora data/*
+    sudo chown pora:pora data/logs/*
+    sudo chown pora:pora data/zombies/*  
     
     month=$(expr MONTH_ENV + 0)
     CUR=$(pwd)
