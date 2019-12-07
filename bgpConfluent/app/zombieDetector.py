@@ -136,7 +136,7 @@ class ZombieDetector :
         self.max_peer[p] = max(v, self.max_peer[p])
         
         i = self._get_index(ts) 
-        self.p[p][i] = status['value']
+        self.p[p][i] = str(status['value'])
 
         if len( self.prefixes[p] ) < maxlen+2:
             return  
