@@ -37,6 +37,7 @@ do
     docker run -d \
     --name "${TOPIC_HEADER}_scheduler" \
     --network host \
+    --cpus="2" \
     -v "${PWD}"/data/logs:/app/logs \
     -v "${PWD}"/data/buf:/app/buf \
     -v "${PWD}"/config.ini:/app/config.ini \
@@ -50,7 +51,6 @@ do
     for i in `seq 0 9` ; do         
         docker run -d \
         --name "${TOPIC_HEADER}_detector_${i}" \
-        --cpus="2" \
         --network host \
         -v "${PWD}"/data/logs:/app/logs \
         -v "${PWD}"/data/zombies:/app/zombies \
