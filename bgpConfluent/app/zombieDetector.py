@@ -22,7 +22,7 @@ class ZombieDetector :
         self.start = start 
         self.end = end 
         self.topic_header = topic_header 
-        self.st_ts = dt2ts(self.start)*1000
+        self.st_ts = dt2ts(start)*1000
 
         self.config = configparser.ConfigParser()
         self.config.read('/app/config.ini')
@@ -114,6 +114,14 @@ class ZombieDetector :
             logging.info(f'[{name}] done writing')   
             
     def save(self) :
+        header = ["prefixes"]
+        start = dt2ts(self.start)
+        end = dt2ts(self.end)
+        interval = int(self.config['DEFAULT']['Interval'])//1000
+        for i in range(start,end+1, interval) :
+            header.append( str(i) )
+        self.active.write( ",".join(header) + "\n" )
+        
         for prefix in self.p : 
             content = prefix + "," + ",".join(self.p[prefix]) + "\n"
             self.active.write(content)
@@ -142,17 +150,6 @@ class ZombieDetector :
         if random.randint(1,1000000) % 999999 == 0 :
             logging.debug(f"zombieDetector-{self.partition} | {p} | {ts2dt(ts//1000)} | {self.max_peer[p]} | {self.prefixes[p]}")
     
-    def _create_file(self, st, en) :
-        header = ["prefixes"]
-        start = dt2ts(st)
-        end = dt2ts(en)
-        interval = int(self.config['DEFAULT']['Interval'])//1000
-        for i in range(start,end+1, interval) :
-            header.append(i)
-
-        self.active.write( ",".join(header) + "\n" )
-        self.active.flush()
-
     def _get_index(self, ts) :
         return (ts-self.st_ts)//int(self.config['DEFAULT']['Interval'])
 
