@@ -42,8 +42,7 @@ do
     -v "${PWD}"/config.ini:/app/config.ini \
     -v "${PWD}"/zombieHunter.sh:/app/zombieHunter.sh \
     -e JOB="scheduler" \
-    -e START=${YEAR_ENV}-${MONTH_ENV}-10T00:00:00 \
-    -e END=${YEAR_ENV}-${MONTH_ENV}-20T00:00:00 \
+    --env-file env \
     pora/bgpconfluent:latest \
     /app/zombieHunter.sh 
 
