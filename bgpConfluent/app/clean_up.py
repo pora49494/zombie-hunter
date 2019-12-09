@@ -54,4 +54,4 @@ for key in clusterMetaData.topics :
         topics_delete.append(key)
 
 # delete finished topics
-admin_client.delete_topics([topics_delete])
+admin_client.delete_topics(topics_delete)
