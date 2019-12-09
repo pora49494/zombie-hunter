@@ -94,15 +94,12 @@ do
     CUR=$(pwd)
 
     cd ${CUR}/data/logs/
-    tar -czf ${YEAR_ENV}-${month}-logs.tar.bz ${YEAR_ENV}-${month}-*
+    tar -czvf ${YEAR_ENV}-${month}-logs.tar.bz ${YEAR_ENV}-${month}-*
     scp ${YEAR_ENV}-${month}-logs.tar.bz pora-2:~/archive/logs/
     mv ${YEAR_ENV}-${month}-logs.tar.bz ${CUR}/data/archive/
 
-    cd ${CUR}
-    python3 filter.py ${YEAR_ENV}-${month}
-    
     cd ${CUR}/data/zombies/
-    tar -czf "${YEAR_ENV}-${month}-zombieHunter.tar.bz" ${YEAR_ENV}-${month}-*
+    tar -czvf "${YEAR_ENV}-${month}-zombieHunter.tar.bz" ${YEAR_ENV}-${month}-*
     scp ${YEAR_ENV}-${month}-zombieHunter.tar.bz pora-2:~/archive/zombies/
     mv ${YEAR_ENV}-${month}-zombieHunter.tar.bz ${CUR}/data/archive/
 
