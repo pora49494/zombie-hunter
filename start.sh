@@ -94,15 +94,17 @@ do
     CUR=$(pwd)
 
     cd ${CUR}/data/logs/
-    tar -czvf ${YEAR_ENV}-${month}-logs.tar.bz ${YEAR_ENV}-${month}-*
+    tar -czf ${YEAR_ENV}-${month}-logs.tar.bz ${YEAR_ENV}-${month}-*
     scp ${YEAR_ENV}-${month}-logs.tar.bz pora-2:~/archive/logs/
     mv ${YEAR_ENV}-${month}-logs.tar.bz ${CUR}/data/archive/
+    rm ${YEAR_ENV}-${month}-ihr-kafka-*.log
 
     cd ${CUR}/data/zombies/
-    tar -czvf "${YEAR_ENV}-${month}-zombieHunter.tar.bz" ${YEAR_ENV}-${month}-*
+    tar -czf ${YEAR_ENV}-${month}-zombieHunter.tar.bz ${YEAR_ENV}-${month}-*
     scp ${YEAR_ENV}-${month}-zombieHunter.tar.bz pora-2:~/archive/zombies/
     mv ${YEAR_ENV}-${month}-zombieHunter.tar.bz ${CUR}/data/archive/
-
+    rm ${YEAR_ENV}-${month}-*.txt
+    
     cd ${CUR}
 
     echo "[CLEAN UP]: delete container"
