@@ -72,6 +72,17 @@ do
         sleep 300
     done 
 
+    echo "[RUN] CLEANER"
+    docker run -d --rm \
+    --name "${TOPIC_HEADER}_cleaner" \
+    --network host \
+    -v "${PWD}"/data/zombies:/app/zombies \
+    -v "${PWD}"/config.ini:/app/config.ini \
+    -v "${PWD}"/zombieHunter.sh:/app/zombieHunter.sh \
+    -e TOPIC_HEADER="${TOPIC_HEADER}" \
+    -e JOB="cleaner" \
+    pora/bgpconfluent:latest \
+    /app/zombieHunter.sh
 
     echo "[FILE MANAGEMENT]: saving data"
     sudo chown pora:pora data
@@ -101,7 +112,7 @@ do
     A=$(docker ps -qaf "name=${TOPIC_HEADER}_")
     for i in $A; do 
         docker rm $i
-    done  
+    done
 
     sleep 300
     
